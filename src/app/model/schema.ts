@@ -210,7 +210,7 @@ export interface MissionInterface {
   deliveryLocation: Location; // default to recipient location
   deliveryConfirmationImage: string;
   deliveryNotes: string;
-  deliveryType: string;
+  deliveryType: "delivery" | "curbside";
 
   feedbackNotes: string;
 

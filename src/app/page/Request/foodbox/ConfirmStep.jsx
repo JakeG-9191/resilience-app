@@ -78,7 +78,7 @@ function ConfirmStep({ dispatch, state }) {
     };
 
     if (isDonationRequest) {
-      mission = { ...mission, fundedStatus: MissionFundedStatus.notfunded };
+      mission = { ...mission, fundedStatus: MissionFundedStatus.fundedbydonation };
     } else {
       mission = {
         ...mission,
