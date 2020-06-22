@@ -32,7 +32,7 @@ const routes: IRoutes = {
     createdByUser: "/missions/created",
     createNew: "/missions/new",
     completed: "/missions/completed",
-    feedback: "/missions/feedback/:id",
+    delivered: "/missions/delivered",
   },
 
   organizer: {

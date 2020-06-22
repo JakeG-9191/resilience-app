@@ -13,10 +13,13 @@ export const color = {
   redlines: "#E8178A",
   green: "#024b30",
   greenSuccess: "#66D85D",
+  greenLight: "#D2F4CF",
   greenToast: "#4caf50",
-  darkOrange: "#EC7016",
+  darkOrange: "#f2994a",
+  orange: "#fce1c9",
   darkBlue: "#110079",
   lightgrey: "#F2F2F2",
+  gray3: "#828282",
 };
 
 // utils to extract style

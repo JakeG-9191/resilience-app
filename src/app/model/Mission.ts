@@ -8,6 +8,7 @@ import {
   MissionType,
   TimeWindow,
   TimeWindowType,
+  DeliveryType,
 } from "./schema";
 import _ from "lodash";
 import Organization from "./Organization";
@@ -51,6 +52,7 @@ const defaultMissionData: MissionInterface = {
   volunteerUid: "",
   volunteerDisplayName: "",
   volunteerPhoneNumber: "",
+  volunteerPhotoURL: "",
 
   recipientDisplayName: "No Recipient Name",
   recipientPhoneNumber: "",
@@ -63,7 +65,7 @@ const defaultMissionData: MissionInterface = {
 
   deliveryWindow: defaultTimeWindow,
   deliveryLocation: defaultLocation, // default to recipient location
-  deliveryType: "curbside",
+  deliveryType: DeliveryType.delivery,
 
   deliveryConfirmationImage: "",
   deliveryNotes: "",
@@ -164,11 +166,39 @@ const fsAssignedUserMissions = (orgId: string, userId: string) => ({
       collection: "missions",
       where: [
         ["volunteerUid", "==", userId],
-        ["status", "in", [MissionStatus.assigned, MissionStatus.started, MissionStatus.delivered]],
+        ["status", "in", [MissionStatus.assigned, MissionStatus.started]],
       ],
     },
   ],
   storeAs: "assignedUserMissions",
+});
+const fsDeliveredUserMissions = (orgId: string, userId: string) => ({
+  collection: "organizations",
+  doc: orgId,
+  subcollections: [
+    {
+      collection: "missions",
+      where: [
+        ["volunteerUid", "==", userId],
+        ["status", "==", MissionStatus.delivered],
+      ],
+    },
+  ],
+  storeAs: "deliveredUserMissions",
+});
+const fsCompletedUserMissions = (orgId: string, userId: string) => ({
+  collection: "organizations",
+  doc: orgId,
+  subcollections: [
+    {
+      collection: "missions",
+      where: [
+        ["volunteerUid", "==", userId],
+        ["status", "in", [MissionStatus.succeeded, MissionStatus.failed]],
+      ],
+    },
+  ],
+  storeAs: "completedUserMissions",
 });
 
 const getAllGroups = (missions: MissionInterface[]) => {
@@ -217,6 +247,8 @@ class Mission extends BaseModel {
   fsAvailableUserMissions = fsAvailableUserMissions;
   selectAssignedUserMissions = (state: any) => state.firestore.ordered.assignedUserMissions || [];
   fsAssignedUserMissions = fsAssignedUserMissions;
+  fsDeliveredUserMissions = fsDeliveredUserMissions;
+  fsCompletedUserMissions = fsCompletedUserMissions;
 
   getAllGroups = getAllGroups;
 
@@ -265,7 +297,7 @@ class Mission extends BaseModel {
    * @param {string} missionUid - mission
    * @param {object} data- updated data
    */
-  update(missionUid: string, data: object) {
+  update(missionUid: string, data: Partial<MissionInterface>) {
     let sanitized = this.sanitize(data);
     return this.getCollection("organizations")
       .doc(Organization.uid)
@@ -330,6 +362,7 @@ class Mission extends BaseModel {
       volunteerUid: userUid,
       volunteerDisplayName: user.displayName,
       volunteerPhoneNumber: user.phoneNumber,
+      volunteerPhotoURL: user.photoURL,
       status: MissionStatus.assigned,
     });
   }
@@ -339,10 +372,6 @@ class Mission extends BaseModel {
    * @param {string} missionUid - mission that user want to start
    */
   start(userUid: string, user: UserInterface, missionUid: string) {
-    //TODO: rules in db, only user that are correct assigned can start
-    console.log("start button =====");
-    console.log("user id:" + userUid + " user");
-    console.log(user);
     return this.update(missionUid, {
       uid: missionUid,
       tentativeVolunteerUid: "",
@@ -389,20 +418,6 @@ class Mission extends BaseModel {
       volunteerDisplayName: "",
       volunteerPhoneNumber: "",
       status: MissionStatus.tentative,
-    });
-  }
-
-  /**
-   * Submit feedback for mission
-   * @param {string} missionUid : mission for which feedback will be set
-   * @param {string} feedback: mission feedback
-   * @param {boolean} success: whether the the mission was a success.
-   */
-  submitFeedback(missionUid: string, feedback: string, success: boolean) {
-    //TODO: update firestore.rules to allow only if the mission is created by that user
-    return this.update(missionUid, {
-      feedbackNotes: feedback || "",
-      ...(success && { status: MissionStatus.succeeded }),
     });
   }
 

@@ -17,8 +17,8 @@ import {
   Logout,
   MissionCreate,
   MissionDetails,
-  MissionFeedback,
   MissionsCompleted,
+  MissionsDelivered,
   OrganizerSignupPage,
   RequestPage,
   Signup,
@@ -70,7 +70,7 @@ function App() {
                   <AppRoute path={routes.donate} component={DonationPage} />
                   <AppRoute path={routes.missions.createNew} component={MissionCreate} />
                   <AppRoute path={routes.missions.completed} component={MissionsCompleted} />
-                  <AppRoute path={routes.missions.feedback} component={MissionFeedback} />
+                  <AppRoute path={routes.missions.delivered} component={MissionsDelivered} />
                   <AppRoute path={routes.missions.details} component={MissionDetails} />
                   <AppRoute path={routes.user.profile} component={UserProfile} />
                   {/* ⬇ BASE routes below ⬇ */}

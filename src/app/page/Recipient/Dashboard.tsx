@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { useFirestoreConnect } from "react-redux-firebase";
 import { Typography, Box, Button, makeStyles, Tabs, Tab } from "@material-ui/core";
 import { Add } from "@material-ui/icons";
-import { Link, useLocation, Redirect, Switch, Route } from "react-router-dom";
+import { Link, useLocation, Redirect, Switch } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import { Page } from "../../layout";
 import { routes, AppRoute } from "../../routing";
-import { User } from "../../model";
-import { MissionStatus } from "../../model/schema";
+import { User, useOrganization } from "../../model";
+import { MissionStatus, MissionInterface } from "../../model/schema";
 import RequestsList from "./RequestsList";
 
 const useStyles = makeStyles((theme) => ({
@@ -28,34 +29,63 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const stepMap = (path) =>
+const stepMap = (path: any) =>
   ({
     [routes.recipient.dashboard.submitted]: 0,
     [routes.recipient.dashboard.completed]: 1,
   }[path] || 0);
+
+const sortByDate = (a: MissionInterface, b: MissionInterface) =>
+  new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
 
 const completedStatus = [MissionStatus.delivered, MissionStatus.succeeded];
 
 export default function () {
   const classes = useStyles();
   const location = useLocation();
+  const [missions, setMissions] = useState<{
+    submitted: MissionInterface[];
+    completed: MissionInterface[];
+  }>({ submitted: [], completed: [] });
+
+  // @ts-ignore no types for state
   const auth = useSelector((state) => state.firebase.auth);
-  const [missions, setMissions] = useState({ submitted: [], completed: [] });
+  const org = useOrganization();
+
+  useFirestoreConnect(() => {
+    return [
+      {
+        collection: "organizations",
+        doc: org?.uid,
+        subcollections: [
+          {
+            collection: "missions",
+            where: [["recipientUid", "==", auth.uid]],
+          },
+        ],
+        storeAs: "recipientMissions",
+      },
+    ];
+  });
+
+  const userMissions: MissionInterface[] = useSelector(
+    (state: any) => state.firestore.ordered.recipientMissions
+  );
 
   useEffect(() => {
-    User.getAllRequestedMissions(auth.uid).then((missions) => {
-      let submitted = [];
-      let completed = [];
+    let submitted: MissionInterface[] = [];
+    let completed: MissionInterface[] = [];
 
-      missions.forEach((mission) => {
+    if (userMissions) {
+      userMissions.sort(sortByDate).forEach((mission) => {
         completedStatus.includes(mission.status)
           ? completed.push(mission)
           : submitted.push(mission);
       });
 
       setMissions({ submitted, completed });
-    });
-  }, [auth.uid]);
+    }
+  }, [userMissions]);
 
   if (location.pathname === routes.recipient.dashboard.home) {
     return <Redirect to={routes.recipient.dashboard.submitted} />;
@@ -90,13 +120,16 @@ export default function () {
           }
         ></Tab>
       </Tabs>
-      <Box margin="0 1rem" height="100%">
+      <Box margin="0 1rem 3rem 1rem" height="100%">
         <Switch>
           <AppRoute path={routes.recipient.dashboard.submitted}>
-            <RequestsList missions={missions.submitted} />
+            <RequestsList missions={missions.submitted} fallback="No missions in progress" />
           </AppRoute>
           <AppRoute path={routes.recipient.dashboard.completed}>
-            <RequestsList missions={missions.completed} />
+            <RequestsList
+              missions={missions.completed}
+              fallback="No requests have been completed"
+            />
           </AppRoute>
         </Switch>
       </Box>

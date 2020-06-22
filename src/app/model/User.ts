@@ -1,6 +1,12 @@
 import BaseModel from "./BaseModel";
 import Organization from "./Organization";
-import { Location, MissionStatus, UserInterface, VolunteerStatus } from "./schema";
+import {
+  Location,
+  MissionStatus,
+  UserInterface,
+  VolunteerStatus,
+  MissionInterface,
+} from "./schema";
 import { env } from "../utils";
 
 const defaultLocation: Location = {
@@ -71,7 +77,9 @@ export class User extends BaseModel {
   createProfileIfNotExist(auth: any, profile: any) {
     if (!auth || !profile) return;
     if (auth.isLoaded && !auth.isEmpty && profile.isEmpty && profile.isLoaded) {
-      return this.getCollection("users").doc(auth.uid).set(this.load(auth));
+      return this.getCollection("users")
+        .doc(auth.uid)
+        .set({ ...this.load(auth), organizationUid: Organization.uid });
     }
   }
 
@@ -79,7 +87,7 @@ export class User extends BaseModel {
     if (userUid) {
       return this.getCollection("users")
         .doc(userUid)
-        .set(this.load({ ...data, uid: userUid }))
+        .set(this.load({ ...data, uid: userUid, organizationUid: Organization.uid }))
         .then(() => userUid);
     }
 
@@ -135,13 +143,13 @@ export class User extends BaseModel {
       });
   }
 
-  getAllRequestedMissions(userUid: string) {
+  getAllRequestedMissions(userUid: string): Promise<MissionInterface[]> {
     return this.getCollection("organizations")
       .doc(Organization.uid)
       .collection("missions")
       .where("recipientUid", "==", userUid)
       .get()
-      .then((snapshot) => snapshot.docs.map((doc) => doc.data()))
+      .then((snapshot) => snapshot.docs.map((doc) => doc.data()) as MissionInterface[])
       .catch((error) => {
         console.error(error);
         return [];
